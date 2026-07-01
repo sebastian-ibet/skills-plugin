@@ -1,0 +1,14 @@
+{
+  "name": "design-tooling",
+  "owner": {
+    "name": "REPLACE-ME",
+    "url": "https://github.com/REPLACE-ME-ORG"
+  },
+  "plugins": [
+    {
+      "name": "design-pipeline",
+      "source": "./plugins/design-pipeline",
+      "description": "Figma-to-prototype design pipeline: forge Figma components into a tokenized Storybook library (with Code Connect), assemble high-fidelity interactive prototypes from that library, QA them against Figma, and hand engineering a clean frontend."
+    }
+  ]
+}

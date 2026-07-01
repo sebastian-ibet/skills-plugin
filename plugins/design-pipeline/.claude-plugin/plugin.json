@@ -1,0 +1,17 @@
+{
+  "name": "design-pipeline",
+  "version": "0.1.0",
+  "description": "Figma-to-prototype design pipeline. Forge tokenized components into a Storybook library with Code Connect, assemble high-fidelity prototypes that consume only that library, QA against Figma, and strip the mock layer for engineering handoff.",
+  "author": {
+    "name": "REPLACE-ME"
+  },
+  "keywords": [
+    "figma",
+    "storybook",
+    "design-system",
+    "design-tokens",
+    "code-connect",
+    "chromatic",
+    "prototype"
+  ]
+}
