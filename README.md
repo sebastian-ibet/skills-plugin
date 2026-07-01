@@ -47,7 +47,7 @@ versioned package plus Code Connect mappings.
 
 ```bash
 # one-time: register this marketplace (must be a public or org-accessible repo)
-/plugin marketplace add REPLACE-ME-ORG/design-pipeline
+/plugin marketplace add sebastian-ibet/skills-plugin
 
 # install the plugin (project scope = shared with the team via .claude/settings.json)
 /plugin install design-pipeline@design-tooling --scope project
