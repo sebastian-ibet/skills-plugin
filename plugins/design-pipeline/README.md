@@ -73,3 +73,47 @@ Forge emits a `<Component>.figma.tsx` mapping per component
 makes Figma Dev Mode show your real component snippet. See
 `skills/figma-to-chromatic-design-system/references/code-connect.md` and
 `examples/Button.figma.tsx`.
+
+## The automation layer
+
+The library-repo half of the pipeline (`figma-audit` → forge) works one
+Figma link at a time by design — a human decides which node to point it at.
+The automation layer runs that same loop across many components without
+touching either of `figma-audit` or `figma-to-chromatic-design-system`
+themselves, and without weakening either gate that makes the manual loop
+trustworthy: a non-clean audit is never forged, and nothing is ever marked
+visually validated by a machine.
+
+```
+  trigger                    loop                        guard              delivery
+┌──────────────┐   ┌─────────────────────────┐   ┌────────────────┐   ┌──────────────────┐
+│ schedule /    │──▶│ figma-page-scan          │   │ token-refresh  │   │ forge-batch opens │
+│ workflow_     │   │ (enumerate a Figma page, │──▶│ (halts the     │──▶│ a PR: summary +   │
+│ dispatch, via │   │  exclude kitchen-sink    │   │  batch if      │   │ human review      │
+│ templates/    │   │  frames, flag duplicate- │   │  tokens are    │   │ checklist —       │
+│ forge.yml     │   │  named sets as Ambiguous)│   │  stale)        │   │ visual check      │
+└──────────────┘   └─────────────────────────┘   └────────────────┘   │ stays a human step │
+                                                                        └──────────────────┘
+```
+
+- **`token-refresh`** — runs before anything else touches Figma. Verdict
+  `FRESH` or `STALE`; a stale token pipeline halts the whole run rather than
+  forging blind against it.
+- **`figma-page-scan`** — read-only. Turns "audit whatever link a human
+  pastes" into a real backlog: `Queued / Ambiguous / Excluded /
+  Skipped-existing / Not-ready`. Never resolves an `Ambiguous` duplicate
+  itself — that's a canonical-pick decision for a human or design.
+- **`forge-batch`** — the orchestrator. Runs `figma-audit` on each queued
+  node and auto-forges via `figma-to-chromatic-design-system` only a
+  genuinely clean, zero-warning `PASS`. Anything with a WARNING or BLOCKER is
+  stopped, not forged, and collected with the audit's own text for review.
+  Skips anything already in the repo's `component-index.md`.
+- **`templates/forge.yml`** — a GitHub Actions template wiring the three
+  above together on a schedule or `workflow_dispatch`, ending in a PR with a
+  human review checklist (visual check, resolve warnings/blockers, confirm
+  Code Connect, mark validated). It ships inert — every secret and trigger is
+  a `# TODO:`; nothing runs until a human fills it in and enables it.
+
+Same rule as the rest of this pipeline, just automated: a component is not
+done because it built. It's done when a human has looked at it next to
+Figma.

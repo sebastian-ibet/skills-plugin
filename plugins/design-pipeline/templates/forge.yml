@@ -1,0 +1,133 @@
+# =============================================================================
+# TEMPLATE — this is not a live workflow.
+#
+# Copy this file into `.github/workflows/forge.yml` in the LIBRARY repo (the
+# repo where `figma-to-chromatic-design-system` and `component-index.md` are
+# actually instantiated), then work through every `# TODO:` below before
+# enabling it. As checked in here, this workflow has no working triggers and
+# no secrets — it will not run, and should not be relied on to run, until a
+# human has deliberately wired it up.
+#
+# Flow: token-refresh (halt if stale) -> figma-page-scan (build queue) ->
+#       forge-batch (audit + auto-forge only clean nodes) -> open a PR with
+#       a human review checklist. Nothing in this workflow marks a component
+#       visually validated — that stays a human step, same as every other
+#       use of this plugin.
+# =============================================================================
+
+name: forge (design-pipeline automation — TEMPLATE, disabled by default)
+
+on:
+  # TODO: uncomment and set a real cadence once this is reviewed and enabled.
+  # schedule:
+  #   - cron: '0 6 * * 1'   # e.g. weekly, Monday 06:00 UTC — pick your own cadence
+  workflow_dispatch:
+    inputs:
+      figma_page:
+        description: 'Figma page/file reference to scan (passed to figma-page-scan)'
+        required: false
+        type: string
+
+# TODO: scope permissions down to only what this workflow actually needs
+# (contents: write + pull-requests: write for the PR step) once you've
+# reviewed exactly what forge-batch writes in your repo.
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  forge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20 # TODO: match the library repo's actual Node version
+
+      - name: Install dependencies
+        run: npm install # TODO: adjust for your package manager (pnpm/yarn) if different
+
+      # ---------------------------------------------------------------------
+      # TODO: Figma MCP / API access.
+      # This step is a placeholder — there is no off-the-shelf headless
+      # runner for MCP-based Figma access checked into this template. You
+      # will need to wire whatever your CI environment uses to reach Figma
+      # (a service account token, a self-hosted MCP bridge, etc.) before
+      # token-refresh, figma-page-scan, or forge-batch can do anything Figma-
+      # facing here. Until this is wired up, expect token-refresh's live-diff
+      # step to report "no MCP access available" rather than a real result.
+      # ---------------------------------------------------------------------
+      - name: Configure Figma access
+        run: echo "TODO- wire Figma/MCP credentials for headless CI access"
+        env:
+          # TODO: FIGMA_ACCESS_TOKEN: ${{ secrets.FIGMA_ACCESS_TOKEN }}
+          PLACEHOLDER: "true"
+
+      - name: token-refresh (halt if stale)
+        run: |
+          echo "TODO: invoke the token-refresh skill/agent here."
+          echo "If it reports STALE, this step must fail the job — do not"
+          echo "let figma-page-scan or forge-batch run against stale tokens."
+          exit 1 # TODO: remove this placeholder failure once wired up
+
+      - name: figma-page-scan (build queue)
+        run: |
+          echo "TODO: invoke the figma-page-scan skill/agent here, targeting"
+          echo "\${{ inputs.figma_page }} (or a fixed page ref for scheduled runs)."
+          echo "Persist its Queued bucket for the next step to consume."
+
+      - name: forge-batch (audit + auto-forge clean nodes only)
+        run: |
+          echo "TODO: invoke the forge-batch skill/agent here, consuming the"
+          echo "Queued bucket from the previous step. It must not forge"
+          echo "anything with a WARNING or BLOCKER audit result, and must not"
+          echo "re-forge anything already in component-index.md."
+
+      - name: Build Storybook
+        run: npm run build-storybook # TODO: adjust if your repo names this differently
+
+      # ---------------------------------------------------------------------
+      # TODO: Chromatic publish, if this repo also publishes on this branch.
+      # Never hardcode the token below — it must come from a repo/org secret.
+      # ---------------------------------------------------------------------
+      - name: Publish to Chromatic
+        if: false # TODO: flip to true once CHROMATIC_PROJECT_TOKEN is configured
+        run: npx chromatic --project-token=$CHROMATIC_PROJECT_TOKEN
+        env:
+          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }} # TODO: set this repo/org secret
+
+      - name: Open PR with forge summary
+        if: false # TODO: flip to true once you're ready to let this open real PRs
+        uses: peter-evans/create-pull-request@v6 # TODO: pin an exact version and review this action
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }} # TODO: confirm default GITHUB_TOKEN has enough scope, or use a PAT
+          title: "forge-batch: automated component forge run"
+          branch: "forge-batch/automated-run"
+          commit-message: "chore(forge-batch): automated forge run"
+          body: |
+            ## Automated forge run summary
+
+            _(TODO: template this out with forge-batch's actual summary table —
+            forged / stopped-on-warnings / blocked / skipped-existing — plus the
+            Storybook build result, once forge-batch's output format is finalized
+            in this repo.)_
+
+            ## Human review checklist — do not merge until every box is checked
+
+            - [ ] Visually compared every forged component's Storybook stories
+                  against its Figma screenshots (this workflow does not do this —
+                  no component is auto-validated).
+            - [ ] Reviewed and resolved every item in `stopped-on-warnings` and
+                  `blocked` from the forge-batch summary above (they were
+                  intentionally NOT forged; each still needs a human decision).
+            - [ ] Confirmed a Code Connect mapping (`<Component>.figma.tsx`)
+                  exists for every newly forged component.
+            - [ ] Confirmed `component-index.md` was updated for every newly
+                  forged component, and only marked "Validated" after the
+                  visual check above was actually done.
+            - [ ] Confirmed no token was invented or hardcoded to unblock this
+                  run (token-refresh should have halted the job before this PR
+                  could exist if one was needed — double-check anyway).
