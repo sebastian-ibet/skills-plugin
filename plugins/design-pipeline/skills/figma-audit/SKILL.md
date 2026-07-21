@@ -41,9 +41,24 @@ Inspect the node through `mcp__<server>__get_design_context`,
    matrix found.
 3. **Auto-layout is used.** The component and its meaningful containers use auto
    layout (so spacing/direction are structural, not absolute positions).
-4. **Variables are bound.** Colour, radius, spacing, and typography read from
-   bound Figma variables, not raw literal values. List any property carrying a
-   raw literal — each is a future inline-hex / off-token bug.
+4. **Variables are bound — and spacing is reported per side, numerically.**
+   Colour, radius, spacing, and typography read from bound Figma variables,
+   not raw literal values. List any property carrying a raw literal — each is
+   a future inline-hex / off-token bug. For spacing specifically, "bound" is
+   not enough: for every auto-layout container in the node, extract and
+   report the **resolved numeric value of all four padding sides plus any
+   `gap`** (via `get_design_context` / `get_variable_defs`), e.g.
+   `padding: top=12(sm) right=4(2xs) bottom=12(sm) left=4(2xs), gap=16(md)`.
+   A property merely being "bound to some variable" says nothing about
+   whether the right side/value is bound — the forge step needs the actual
+   numbers to reconcile against, not a bound/unbound flag.
+   If the node's known implementation pattern will split this container into
+   multiple DOM elements (e.g. a documented accessibility deviation such as a
+   single Figma button becoming a header/panel split), raise a **WARNING**:
+   "this container's padding must be redistributed across N elements —
+   forge must account for all four sides plus gap, not just the sides that
+   map obviously." This is what catches a side silently ending up with no
+   padding at all when a container gets split apart during forging.
 5. **Variables resolve to a known token tier.** Each bound variable maps to a
    Tier 2 (semantic) or Tier 3 (component) token per the token contract. Tier 1
    primitives bound directly are a finding (components must not consume Tier 1).
