@@ -117,3 +117,17 @@ visually validated by a machine.
 Same rule as the rest of this pipeline, just automated: a component is not
 done because it built. It's done when a human has looked at it next to
 Figma.
+
+### `forge-tree` — compose-aware forging
+
+`forge-batch` processes a flat backlog; `forge-tree` handles a single target
+component that *composes* others as nested instances (a `Card` containing a
+`Button` containing an `Icon`). It resolves the full nested-instance dependency
+graph, forges children before parents, skips anything already in the repo's
+`component-index.md`, and only then forges the target. It detects and refuses
+dependency cycles, stops if a dependency is unreachable through the Figma MCP or
+is an ambiguous duplicate/kitchen-sink frame, and shows the resolved forge order
+for human approval before forging anything. Like the rest of the layer it only
+orchestrates `figma-audit` and `figma-to-chromatic-design-system` — it never
+reimplements them, never forges a non-clean audit, and never marks anything
+validated.
